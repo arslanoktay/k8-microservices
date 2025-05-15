@@ -1,0 +1,18 @@
+version: '3.8'
+services:
+  analytics-service:
+    container_name: analytics-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4002:4002"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    networks:
+      - my-network
+
+
+networks:
+  my-network:
+    external: true

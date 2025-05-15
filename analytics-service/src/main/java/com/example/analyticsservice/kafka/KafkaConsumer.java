@@ -21,7 +21,10 @@ public class KafkaConsumer {
 
             // ... perform business related logic
             log.info("Received Patient Event: [PatientId={}, PatientName={}, PatientEmail={} ]",
-                    patientEvent.getPatientId(),patientEvent.getName(),patientEvent.getEmail());
+                    patientEvent.getPatientId(),
+                    patientEvent.getName(),
+                    patientEvent.getEmail());
+
         } catch (InvalidProtocolBufferException e) {
             log.error("Error deserializing event {}",e.getMessage());
         }
