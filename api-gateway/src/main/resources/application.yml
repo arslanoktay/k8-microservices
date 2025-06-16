@@ -5,21 +5,18 @@ spring:
   cloud:
     gateway:
       routes:
-        ## predicates -> (I think gateway will undestand prom predicates which service is this) Strip path side add uri for requests http://localhost:4004/api/patients
         - id: patient-service-route
-          uri: http://patient-service:4000
+          uri: http://patient-service:4000 # veya lb://patient-service
           predicates:
-            - path=/api/patients/**
+            - Path=/api/patients/**
           filters:
-            - strip-prefix=1
+            - StripPrefix=1 # İyileştirildi
 
-        ## Client when send request to localhost:4004/api-docs/patients gateway will send it to patient-service:4000/v3/api-docs
+        # Gelen istek: localhost:4004/api-docs/patients
+        # Hedef: patient-service:4000/v3/api-docs
         - id: api-docs-patient-route
-          uri: http://patient-service:4000
+          uri: http://patient-service:4000 # veya lb://patient-service
           predicates:
-              - path=//api-cos/patients
+            - Path=/api-docs/patients # DÜZELTİLDİ: Yorum ve RewritePath ile tutarlı hale getirildi
           filters:
-            - rewrite-path=/api-docs/patients,/v3/api-docs
-
-
-
+            - RewritePath=/api-docs/patients, /v3/api-docs # İyileştirildi ve okunurluk için virgülden sonra boşluk

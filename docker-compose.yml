@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # Kafka Servisi
   kafka:
     container_name: kafka
     image: bitnami/kafka:latest
@@ -15,17 +16,110 @@ services:
       - KAFKA_KRAFT_CLUSTER_ID=kraft-cluster-123
       - ALLOW_PLAINTEXT_LISTENER=yes
     ports:
-      - "9092:9092"
-      - "9094:9094"
+      - "9092:9092" # Kafka internal
+      - "9094:9094" # Kafka external (localhost erişimi için)
     volumes:
       - kafka_data:/bitnami/kafka
     networks:
       - my-network
     restart: unless-stopped
 
+  # Analytics Service
+  analytics-service:
+    container_name: analytics-service
+    build:
+      context: ./analytics-service # analytics-service klasörünün yolu
+      dockerfile: Dockerfile
+    ports:
+      - "4002:4002"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      # Gerekirse diğer environment değişkenleri buraya eklenebilir
+    networks:
+      - my-network
+    depends_on:
+      - kafka # Kafka başlamadan analytics-service başlamasın (opsiyonel ama iyi bir pratik)
+    restart: unless-stopped
+
+  # API Gateway
+  api-gateway:
+    container_name: api-gateway
+    build:
+      context: ./api-gateway # api-gateway klasörünün yolu
+      dockerfile: Dockerfile
+    ports:
+      - "4004:4004"
+    networks:
+      - my-network
+    # Genellikle gateway diğer servislerin bir kısmına bağımlı olabilir
+    # depends_on:
+    #   - patient-service
+    #   - billing-service
+    #   - analytics-service
+    restart: unless-stopped
+
+  # Billing Service
+  billing-service:
+    container_name: billing-service
+    build:
+      context: ./billing-service # billing-service klasörünün yolu
+      dockerfile: Dockerfile
+    ports:
+      - "4001:4001" # HTTP portu
+      - "9001:9001" # gRPC portu
+    networks:
+      - my-network
+    restart: unless-stopped
+
+  # Patient Service Database (PostgreSQL)
+  patient-service-db:
+    image: postgres:15
+    container_name: patient-service-db
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "5433:5432" # Dışarıdan veritabanına erişim için (opsiyonel, geliştirme için)
+    volumes:
+      - patient_db_data:/var/lib/postgresql/data # Verilerin kalıcı olması için
+    networks:
+      - my-network
+    restart: unless-stopped
+
+  # Patient Service
+  patient-service:
+    container_name: patient-service
+    build:
+      context: ./patient-service # patient-service klasörünün yolu
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://patient-service-db:5432/db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update # Geliştirme için 'update', production için 'validate' veya 'none'
+      SPRING_SQL_INIT_MODE: always # Geliştirme için, production'da dikkatli kullanılmalı
+      BILLING_SERVICE_ADDRESS: billing-service # Billing servisine network üzerinden erişim
+      BILLING_SERVICE_GRPC_PORT: 9001
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - patient-service-db # Veritabanı başlamadan bu servis başlamasın
+      - kafka              # Kafka başlamadan bu servis başlamasın (opsiyonel ama iyi bir pratik)
+      - billing-service    # Billing servisi başlamadan bu servis başlamasın (opsiyonel)
+    networks:
+      - my-network
+    restart: unless-stopped
+
 volumes:
-  kafka_data:
+  kafka_data: # Kafka verileri için
+  patient_db_data: # Patient Service veritabanı verileri için
 
 networks:
   my-network:
-    external: true
+    driver: bridge # Docker'ın varsayılan bridge network'ünü kullanır ve kendisi oluşturur
+    # Eğer my-network'ü önceden 'docker network create my-network' ile oluşturduysanız
+    # ve harici olarak yönetmek istiyorsanız aşağıdaki satırları kullanın:
+    # name: my-network
+    # external: true

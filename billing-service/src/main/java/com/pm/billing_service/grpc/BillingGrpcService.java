@@ -1,6 +1,5 @@
 package com.pm.billing_service.grpc;
 
-import billing.BillingRequest;
 import billing.BillingResponse;
 import billing.BillingServiceGrpc;
 import io.grpc.stub.StreamObserver;
