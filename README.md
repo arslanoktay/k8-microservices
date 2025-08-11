@@ -21,9 +21,7 @@
     *   [Run locally](#run-locally)
 *   [📈 Observability & Monitoring (recommended)](#-observability--monitoring-recommended)
 *   [✅ Testing](#-testing)
-*   [🤝 Katkıda Bulunma](#-katkıda-bulunma)
-*   [📄 Lisans](#-lisans)
-*   [✉️ İletişim](#-i̇letişim)
+
 
 ---
 
